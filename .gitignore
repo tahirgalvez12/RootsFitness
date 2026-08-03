@@ -1,0 +1,12 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.build/
+*.swiftpm/xcuserdata/
+
+# Secrets — never commit Supabase credentials
+RootsFitness/App/Secrets.xcconfig
+
+# macOS
+.DS_Store
