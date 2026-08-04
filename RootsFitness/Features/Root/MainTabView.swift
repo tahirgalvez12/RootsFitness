@@ -1,30 +1,22 @@
 import SwiftUI
 
 struct MainTabView: View {
+    let currentUserID: UUID
+
     var body: some View {
         TabView {
             Tab("Feed", systemImage: "figure.run") {
-                FeedPlaceholderView()
+                FeedView(viewModel: PostsViewModel(currentUserID: currentUserID))
             }
             Tab("Goals", systemImage: "target") {
                 GoalsPlaceholderView()
             }
+            Tab("Friends", systemImage: "person.2") {
+                FriendsListView(viewModel: FriendsViewModel(currentUserID: currentUserID))
+            }
             Tab("Profile", systemImage: "person.crop.circle") {
                 ProfilePlaceholderView()
             }
-        }
-    }
-}
-
-private struct FeedPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "No Posts Yet",
-                systemImage: "figure.run",
-                description: Text("Friends' workouts, meals, and progress will show up here.")
-            )
-            .navigationTitle("Feed")
         }
     }
 }
@@ -58,6 +50,6 @@ private struct ProfilePlaceholderView: View {
 }
 
 #Preview {
-    MainTabView()
+    MainTabView(currentUserID: UUID())
         .environment(AuthViewModel())
 }
