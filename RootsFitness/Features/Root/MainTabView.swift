@@ -9,7 +9,7 @@ struct MainTabView: View {
                 FeedView(viewModel: PostsViewModel(currentUserID: currentUserID))
             }
             Tab("Goals", systemImage: "target") {
-                GoalsPlaceholderView()
+                GoalsView(viewModel: GoalsViewModel(currentUserID: currentUserID))
             }
             Tab("Friends", systemImage: "person.2") {
                 FriendsListView(viewModel: FriendsViewModel(currentUserID: currentUserID))
@@ -17,19 +17,6 @@ struct MainTabView: View {
             Tab("Profile", systemImage: "person.crop.circle") {
                 ProfilePlaceholderView()
             }
-        }
-    }
-}
-
-private struct GoalsPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "No Goals Set",
-                systemImage: "target",
-                description: Text("Set a goal like losing weight, bulking, or general fitness.")
-            )
-            .navigationTitle("Goals")
         }
     }
 }
