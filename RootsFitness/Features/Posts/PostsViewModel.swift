@@ -28,13 +28,15 @@ struct NewMealInput {
 final class PostsViewModel {
     private(set) var feedItems: [FeedItem] = []
     private(set) var signedURLs: [UUID: URL] = [:]
+    private(set) var reactionsByPost: [UUID: [PostReaction]] = [:]
+    private(set) var commentCountByPost: [UUID: Int] = [:]
 
     var errorMessage: String?
     var isLoading = false
     var isPosting = false
 
+    let currentUserID: UUID
     private let client = SupabaseClient.shared
-    private let currentUserID: UUID
     private let bucket = "post-media"
 
     init(currentUserID: UUID) {
@@ -75,12 +77,24 @@ final class PostsViewModel {
                 .from("post_media").select().in("post_id", values: allPostIDs).order("position")
                 .execute().value
 
-            let (exercises, weights, meals, media) = try await (exercisesTask, weightsTask, mealsTask, mediaTask)
+            async let reactionsTask: [PostReaction] = allPostIDs.isEmpty ? [] : client
+                .from("post_reactions").select().in("post_id", values: allPostIDs)
+                .execute().value
+
+            async let commentIDsTask: [CommentPostIDRow] = allPostIDs.isEmpty ? [] : client
+                .from("post_comments").select("post_id").in("post_id", values: allPostIDs)
+                .execute().value
+
+            let (exercises, weights, meals, media, reactions, commentIDs) = try await (
+                exercisesTask, weightsTask, mealsTask, mediaTask, reactionsTask, commentIDsTask
+            )
 
             let exerciseByPost = Dictionary(uniqueKeysWithValues: exercises.map { ($0.postID, $0) })
             let weightByPost = Dictionary(uniqueKeysWithValues: weights.map { ($0.postID, $0) })
             let mealByPost = Dictionary(uniqueKeysWithValues: meals.map { ($0.postID, $0) })
             let mediaByPost = Dictionary(grouping: media, by: \.postID)
+            reactionsByPost = Dictionary(grouping: reactions, by: \.postID)
+            commentCountByPost = Dictionary(grouping: commentIDs, by: \.postID).mapValues(\.count)
 
             feedItems = posts.compactMap { post -> FeedItem? in
                 let postMedia = mediaByPost[post.id] ?? []
@@ -119,6 +133,34 @@ final class PostsViewModel {
                     signedURLs[mediaID] = url
                 }
             }
+        }
+    }
+
+    /// Toggles the current user's reaction of `kind` on `postID` — inserts if
+    /// not already reacted with that kind, deletes if it is. Updates local
+    /// state optimistically so the feed responds immediately.
+    func toggleReaction(postID: UUID, kind: ReactionKind) async {
+        let existing = reactionsByPost[postID]?.first { $0.userID == currentUserID && $0.reaction == kind }
+        do {
+            if let existing {
+                try await client
+                    .from("post_reactions")
+                    .delete()
+                    .eq("id", value: existing.id)
+                    .execute()
+                reactionsByPost[postID]?.removeAll { $0.id == existing.id }
+            } else {
+                let inserted: PostReaction = try await client
+                    .from("post_reactions")
+                    .insert(NewReactionRow(postID: postID, userID: currentUserID, reaction: kind))
+                    .select()
+                    .single()
+                    .execute()
+                    .value
+                reactionsByPost[postID, default: []].append(inserted)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -233,6 +275,18 @@ final class PostsViewModel {
     }
 }
 
+private struct NewReactionRow: Encodable {
+    let postID: UUID
+    let userID: UUID
+    let reaction: ReactionKind
+
+    enum CodingKeys: String, CodingKey {
+        case postID = "post_id"
+        case userID = "user_id"
+        case reaction
+    }
+}
+
 private struct NewPostRow: Encodable {
     let userID: UUID
     let type: PostType
@@ -247,6 +301,14 @@ private struct NewPostRow: Encodable {
 
 private struct PostIDRow: Decodable {
     let id: UUID
+}
+
+private struct CommentPostIDRow: Decodable {
+    let postID: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case postID = "post_id"
+    }
 }
 
 private struct NewPostMediaRow: Encodable {

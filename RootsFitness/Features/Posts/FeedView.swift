@@ -4,6 +4,7 @@ struct FeedView: View {
     @State var viewModel: PostsViewModel
     @State private var showNewPost = false
     @State private var showHealthSync = false
+    @State private var selectedItem: FeedItem?
 
     var body: some View {
         NavigationStack {
@@ -23,7 +24,17 @@ struct FeedView: View {
                     ScrollView {
                         LazyVStack(spacing: 14) {
                             ForEach(viewModel.feedItems) { item in
-                                FeedItemCard(item: item, signedURLs: viewModel.signedURLs)
+                                FeedItemCard(
+                                    item: item,
+                                    signedURLs: viewModel.signedURLs,
+                                    reactions: viewModel.reactionsByPost[item.post.id] ?? [],
+                                    commentCount: viewModel.commentCountByPost[item.post.id] ?? 0,
+                                    currentUserID: viewModel.currentUserID,
+                                    onToggleReaction: { kind in
+                                        Task { await viewModel.toggleReaction(postID: item.post.id, kind: kind) }
+                                    },
+                                    onOpenDetail: { selectedItem = item }
+                                )
                             }
                         }
                         .padding(.horizontal, RFMetrics.screenPadding)
@@ -60,6 +71,14 @@ struct FeedView: View {
             .sheet(isPresented: $showHealthSync) {
                 HealthSyncView(viewModel: HealthSyncViewModel(postsViewModel: viewModel))
             }
+            .sheet(item: $selectedItem) { item in
+                PostDetailView(
+                    item: item,
+                    signedURLs: viewModel.signedURLs,
+                    currentUserID: viewModel.currentUserID,
+                    initialReactions: viewModel.reactionsByPost[item.post.id] ?? []
+                )
+            }
             .task {
                 await viewModel.refresh()
             }
@@ -67,7 +86,9 @@ struct FeedView: View {
     }
 }
 
-private struct FeedItemCard: View {
+/// Shared post-summary rendering (header/stats/caption/media) — used by both
+/// the feed card and the post detail screen so the layout isn't duplicated.
+struct PostSummaryView: View {
     let item: FeedItem
     let signedURLs: [UUID: URL]
 
@@ -94,26 +115,24 @@ private struct FeedItemCard: View {
     }
 
     var body: some View {
-        RFCard {
-            VStack(alignment: .leading, spacing: 12) {
-                header
+        VStack(alignment: .leading, spacing: 12) {
+            header
 
-                switch item {
-                case .exercise(_, let exercise, _):
-                    exerciseStats(exercise)
-                case .weight(_, let weight, _):
-                    Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
-                        .font(.rfTitle)
-                        .foregroundStyle(Color.rfTextPrimary)
-                case .meal(_, let meal, _):
-                    mealStats(meal)
-                case .progressPic:
-                    EmptyView()
-                }
-
-                caption(item.post.caption)
-                mediaGrid(item.media)
+            switch item {
+            case .exercise(_, let exercise, _):
+                exerciseStats(exercise)
+            case .weight(_, let weight, _):
+                Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
+                    .font(.rfTitle)
+                    .foregroundStyle(Color.rfTextPrimary)
+            case .meal(_, let meal, _):
+                mealStats(meal)
+            case .progressPic:
+                EmptyView()
             }
+
+            caption(item.post.caption)
+            mediaGrid(item.media)
         }
     }
 
@@ -216,6 +235,48 @@ private struct FeedItemCard: View {
         .frame(width: 220, height: 220)
         .clipShape(shape)
         .overlay(shape.strokeBorder(Color.rfTextSecondary.opacity(0.08), lineWidth: 1))
+    }
+}
+
+private struct FeedItemCard: View {
+    let item: FeedItem
+    let signedURLs: [UUID: URL]
+    let reactions: [PostReaction]
+    let commentCount: Int
+    let currentUserID: UUID
+    let onToggleReaction: (ReactionKind) -> Void
+    let onOpenDetail: () -> Void
+
+    var body: some View {
+        RFCard {
+            VStack(alignment: .leading, spacing: 12) {
+                PostSummaryView(item: item, signedURLs: signedURLs)
+
+                Divider()
+                    .overlay(Color.rfTextSecondary.opacity(0.1))
+
+                HStack {
+                    RFReactionBar(
+                        reactions: reactions,
+                        currentUserID: currentUserID,
+                        onToggle: onToggleReaction
+                    )
+
+                    Spacer()
+
+                    Button(action: onOpenDetail) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.left.fill")
+                            Text(commentCount > 0 ? "\(commentCount)" : "Comment")
+                        }
+                        .font(.rfCaption)
+                        .foregroundStyle(Color.rfTextSecondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .onTapGesture(perform: onOpenDetail)
     }
 }
 
