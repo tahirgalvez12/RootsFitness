@@ -50,5 +50,5 @@ enum RFMetrics {
     /// with no visual cue more content follows — this keeps the photo large
     /// and prominent while leaving the actions row visible without
     /// scrolling on most posts.
-    static let heroMediaMaxHeight: CGFloat = 420
+    static let heroMediaMaxHeight: CGFloat = 340
 }

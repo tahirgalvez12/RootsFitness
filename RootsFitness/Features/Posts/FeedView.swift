@@ -229,21 +229,14 @@ struct PostSummaryView {
         if !media.isEmpty {
             if media.count == 1 {
                 mediaImage(for: media[0])
-                    .frame(maxWidth: .infinity)
-                    .frame(height: RFMetrics.heroMediaMaxHeight)
-                    .clipped()
             } else {
                 ZStack(alignment: .bottom) {
                     TabView {
                         ForEach(media) { item in
                             mediaImage(for: item)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: RFMetrics.heroMediaMaxHeight)
-                                .clipped()
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(maxWidth: .infinity)
                     .frame(height: RFMetrics.heroMediaMaxHeight)
 
                     HStack(spacing: 5) {
@@ -262,21 +255,36 @@ struct PostSummaryView {
         }
     }
 
+    /// Fixed-size crop, sized and clipped *inside* the `AsyncImage` closure
+    /// rather than applied to the whole `AsyncImage` from outside. Framing
+    /// the container after the fact left its layout still driven by the
+    /// loaded photo's natural (often much taller) size in practice — baking
+    /// the frame onto the loaded `Image` itself, before it's handed back to
+    /// `AsyncImage`, is what actually makes the box authoritative.
     @ViewBuilder
     private func mediaImage(for item: PostMedia) -> some View {
         if let url = signedURLs[item.id] {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
-                    image.resizable().scaledToFill()
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: RFMetrics.heroMediaMaxHeight)
+                        .clipped()
                 case .failure:
                     Color.rfTextSecondary.opacity(0.15)
+                        .frame(height: RFMetrics.heroMediaMaxHeight)
                 default:
-                    ProgressView()
+                    Color.rfTextSecondary.opacity(0.15)
+                        .frame(height: RFMetrics.heroMediaMaxHeight)
+                        .overlay(ProgressView())
                 }
             }
+            .frame(height: RFMetrics.heroMediaMaxHeight)
         } else {
             Color.rfTextSecondary.opacity(0.15)
+                .frame(height: RFMetrics.heroMediaMaxHeight)
                 .overlay(ProgressView())
         }
     }
