@@ -43,50 +43,52 @@ struct NewPostView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Type", selection: $postType) {
-                        Text("Exercise").tag(PostType.exercise)
-                        Text("Weight").tag(PostType.weight)
-                        Text("Meal").tag(PostType.meal)
-                        Text("Progress Pic").tag(PostType.progressPic)
-                    }
-                    .pickerStyle(.segmented)
-                }
+            ZStack {
+                Color.rfSurfacePrimary.ignoresSafeArea()
 
-                switch postType {
-                case .exercise:
-                    exerciseFields
-                case .weight:
-                    weightFields
-                case .meal:
-                    mealFields
-                case .progressPic:
-                    EmptyView()
-                }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        RFPillPicker(
+                            options: [
+                                (PostType.exercise, "Exercise"),
+                                (PostType.weight, "Weight"),
+                                (PostType.meal, "Meal"),
+                                (PostType.progressPic, "Progress Pic"),
+                            ],
+                            selection: $postType
+                        )
 
-                Section("Photo\(postType == .progressPic ? " (required)" : " (optional)")") {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(height: 180)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                        } else {
-                            Label("Choose Photo", systemImage: "photo")
+                        RFCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                switch postType {
+                                case .exercise:
+                                    exerciseFields
+                                case .weight:
+                                    weightFields
+                                case .meal:
+                                    mealFields
+                                case .progressPic:
+                                    EmptyView()
+                                }
+                            }
+                        }
+
+                        sectionLabel(postType == .progressPic ? "Photo (required)" : "Photo (optional)")
+                        photoPicker
+
+                        sectionLabel("Caption")
+                        RFCard {
+                            TextField("Add a caption (optional)", text: $caption, axis: .vertical)
+                                .font(.rfBody)
+                        }
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.rfCaption)
+                                .foregroundStyle(.red)
                         }
                     }
-                }
-
-                Section("Caption") {
-                    TextField("Add a caption (optional)", text: $caption, axis: .vertical)
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    .padding(RFMetrics.screenPadding)
                 }
             }
             .navigationTitle("New Post")
@@ -102,6 +104,8 @@ struct NewPostView: View {
                         Button("Post") {
                             Task { await submit() }
                         }
+                        .font(.rfButton)
+                        .foregroundStyle(canPost ? Color.rfAccent : Color.rfTextSecondary)
                         .disabled(!canPost)
                     }
                 }
@@ -114,40 +118,66 @@ struct NewPostView: View {
         }
     }
 
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.rfCaption)
+            .foregroundStyle(Color.rfTextSecondary)
+    }
+
     private var exerciseFields: some View {
-        Section("Exercise") {
-            TextField("Activity (e.g. Running)", text: $activityType)
-            TextField("Duration (minutes)", text: $durationMinutes)
-                .keyboardType(.numberPad)
-            TextField("Calories burned", text: $caloriesBurned)
-                .keyboardType(.numberPad)
+        Group {
+            RFTextField(title: "Activity (e.g. Running)", text: $activityType)
+            RFTextField(title: "Duration (minutes)", text: $durationMinutes, keyboardType: .numberPad)
+            RFTextField(title: "Calories burned", text: $caloriesBurned, keyboardType: .numberPad)
         }
     }
 
     private var weightFields: some View {
-        Section("Weight") {
-            TextField("Weight", text: $weightValue)
-                .keyboardType(.decimalPad)
-            Picker("Unit", selection: $weightUnit) {
-                Text("lb").tag(WeightUnit.lb)
-                Text("kg").tag(WeightUnit.kg)
-            }
-            .pickerStyle(.segmented)
+        VStack(alignment: .leading, spacing: 14) {
+            RFTextField(title: "Weight", text: $weightValue, keyboardType: .decimalPad)
+            RFPillPicker(
+                options: [(WeightUnit.lb, "lb"), (WeightUnit.kg, "kg")],
+                selection: $weightUnit
+            )
         }
     }
 
     private var mealFields: some View {
-        Section("Meal") {
-            TextField("Meal name", text: $mealName)
-            TextField("Calories", text: $mealCalories)
-                .keyboardType(.numberPad)
-            TextField("Protein (g)", text: $proteinGrams)
-                .keyboardType(.decimalPad)
-            TextField("Carbs (g)", text: $carbsGrams)
-                .keyboardType(.decimalPad)
-            TextField("Fat (g)", text: $fatGrams)
-                .keyboardType(.decimalPad)
+        Group {
+            RFTextField(title: "Meal name", text: $mealName)
+            RFTextField(title: "Calories", text: $mealCalories, keyboardType: .numberPad)
+            RFTextField(title: "Protein (g)", text: $proteinGrams, keyboardType: .decimalPad)
+            RFTextField(title: "Carbs (g)", text: $carbsGrams, keyboardType: .decimalPad)
+            RFTextField(title: "Fat (g)", text: $fatGrams, keyboardType: .decimalPad)
         }
+    }
+
+    private var photoPicker: some View {
+        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous))
+            } else {
+                VStack(spacing: 10) {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.system(size: 32, weight: .semibold))
+                    Text("Choose Photo")
+                        .font(.rfSubheadline)
+                }
+                .foregroundStyle(Color.rfAccent)
+                .frame(maxWidth: .infinity)
+                .frame(height: 140)
+                .background(
+                    RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous)
+                        .strokeBorder(Color.rfAccent.opacity(0.4), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                )
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func submit() async {

@@ -15,24 +15,10 @@ struct MainTabView: View {
                 FriendsListView(viewModel: FriendsViewModel(currentUserID: currentUserID))
             }
             Tab("Profile", systemImage: "person.crop.circle") {
-                ProfilePlaceholderView()
+                ProfileView(currentUserID: currentUserID)
             }
         }
-    }
-}
-
-private struct ProfilePlaceholderView: View {
-    @Environment(AuthViewModel.self) private var authViewModel
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Button("Sign Out", role: .destructive) {
-                    Task { await authViewModel.signOut() }
-                }
-            }
-            .navigationTitle("Profile")
-        }
+        .tint(Color.rfAccent)
     }
 }
 

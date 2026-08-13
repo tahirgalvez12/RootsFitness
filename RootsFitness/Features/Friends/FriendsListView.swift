@@ -6,46 +6,57 @@ struct FriendsListView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                }
+            ZStack {
+                Color.rfSurfacePrimary.ignoresSafeArea()
 
-                if !viewModel.incomingRequests.isEmpty {
-                    Section("Requests") {
-                        ForEach(viewModel.incomingRequests) { request in
-                            HStack {
-                                Text(request.requester.username)
-                                Spacer()
-                                Button("Accept") {
-                                    Task { await viewModel.accept(request) }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                Button("Decline") {
-                                    Task { await viewModel.decline(request) }
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                        }
+                if viewModel.isLoading && viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
+                    ProgressView()
+                } else if viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
+                    RFEmptyState(
+                        icon: "person.2.fill",
+                        title: "No Friends Yet",
+                        message: "Add friends by username to start sharing your fitness journey.",
+                        actionTitle: "Add a Friend"
+                    ) {
+                        showAddFriend = true
                     }
-                }
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            if let errorMessage = viewModel.errorMessage {
+                                Text(errorMessage)
+                                    .font(.rfCaption)
+                                    .foregroundStyle(.red)
+                            }
 
-                Section("Friends") {
-                    if viewModel.friends.isEmpty {
-                        Text("No friends yet. Tap + to add one.")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(viewModel.friends) { friend in
-                            Text(friend.username)
-                        }
-                        .onDelete { offsets in
-                            for index in offsets {
-                                let friend = viewModel.friends[index]
-                                Task { await viewModel.removeFriend(friend) }
+                            if !viewModel.incomingRequests.isEmpty {
+                                sectionLabel("Requests")
+                                VStack(spacing: 10) {
+                                    ForEach(viewModel.incomingRequests) { request in
+                                        RequestRow(request: request, viewModel: viewModel)
+                                    }
+                                }
+                            }
+
+                            sectionLabel("Friends")
+                            if viewModel.friends.isEmpty {
+                                Text("No friends yet. Tap + to add one.")
+                                    .font(.rfBody)
+                                    .foregroundStyle(Color.rfTextSecondary)
+                            } else {
+                                VStack(spacing: 10) {
+                                    ForEach(viewModel.friends) { friend in
+                                        FriendRow(friend: friend) {
+                                            Task { await viewModel.removeFriend(friend) }
+                                        }
+                                    }
+                                }
                             }
                         }
+                        .padding(RFMetrics.screenPadding)
+                    }
+                    .refreshable {
+                        await viewModel.refresh()
                     }
                 }
             }
@@ -55,7 +66,8 @@ struct FriendsListView: View {
                     Button {
                         showAddFriend = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "person.badge.plus.fill")
+                            .foregroundStyle(Color.rfAccent)
                     }
                 }
             }
@@ -65,14 +77,67 @@ struct FriendsListView: View {
             .task {
                 await viewModel.refresh()
             }
-            .refreshable {
-                await viewModel.refresh()
-            }
-            .overlay {
-                if viewModel.isLoading && viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
-                    ProgressView()
+        }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.rfCaption)
+            .foregroundStyle(Color.rfTextSecondary)
+    }
+}
+
+private struct RequestRow: View {
+    let request: IncomingRequest
+    let viewModel: FriendsViewModel
+
+    var body: some View {
+        RFCard(padding: 14) {
+            HStack(spacing: 12) {
+                RFAvatar(username: request.requester.username, size: 44)
+                Text(request.requester.username)
+                    .font(.rfHeadline)
+                    .foregroundStyle(Color.rfTextPrimary)
+                Spacer()
+                RFCompactButton(title: "Decline", isFilled: false, role: .destructive) {
+                    Task { await viewModel.decline(request) }
+                }
+                RFCompactButton(title: "Accept") {
+                    Task { await viewModel.accept(request) }
                 }
             }
+        }
+    }
+}
+
+private struct FriendRow: View {
+    let friend: Profile
+    let onRemove: () -> Void
+    @State private var showRemoveConfirm = false
+
+    var body: some View {
+        RFCard(padding: 14) {
+            HStack(spacing: 12) {
+                RFAvatar(username: friend.username, size: 44)
+                Text(friend.username)
+                    .font(.rfHeadline)
+                    .foregroundStyle(Color.rfTextPrimary)
+                Spacer()
+                Button {
+                    showRemoveConfirm = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.rfTextSecondary.opacity(0.5))
+                }
+            }
+        }
+        .confirmationDialog(
+            "Remove \(friend.username)?",
+            isPresented: $showRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Friend", role: .destructive, action: onRemove)
+            Button("Cancel", role: .cancel) {}
         }
     }
 }

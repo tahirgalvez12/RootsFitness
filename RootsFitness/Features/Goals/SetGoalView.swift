@@ -11,30 +11,44 @@ struct SetGoalView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Type", selection: $type) {
-                        ForEach(GoalType.allCases, id: \.self) { type in
-                            Text(type.displayName).tag(type)
+            ZStack {
+                Color.rfSurfacePrimary.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        RFPillPicker(
+                            options: GoalType.allCases.map { ($0, $0.displayName) },
+                            selection: $type
+                        )
+
+                        sectionLabel("Target (optional)")
+                        RFCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                RFTextField(
+                                    title: "Target value (e.g. weight in lb)",
+                                    text: $targetValueText,
+                                    keyboardType: .decimalPad
+                                )
+
+                                Toggle("Set a target date", isOn: $hasTargetDate)
+                                    .font(.rfBody)
+                                    .tint(Color.rfAccent)
+
+                                if hasTargetDate {
+                                    DatePicker("Target date", selection: $targetDate, displayedComponents: .date)
+                                        .font(.rfBody)
+                                        .tint(Color.rfAccent)
+                                }
+                            }
+                        }
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.rfCaption)
+                                .foregroundStyle(.red)
                         }
                     }
-                    .pickerStyle(.segmented)
-                }
-
-                Section("Target (optional)") {
-                    TextField("Target value (e.g. weight in lb)", text: $targetValueText)
-                        .keyboardType(.decimalPad)
-
-                    Toggle("Set a target date", isOn: $hasTargetDate)
-                    if hasTargetDate {
-                        DatePicker("Target date", selection: $targetDate, displayedComponents: .date)
-                    }
-                }
-
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    .padding(RFMetrics.screenPadding)
                 }
             }
             .navigationTitle(viewModel.currentGoal == nil ? "Set a Goal" : "Update Goal")
@@ -50,11 +64,19 @@ struct SetGoalView: View {
                         Button("Save") {
                             Task { await submit() }
                         }
+                        .font(.rfButton)
+                        .foregroundStyle(Color.rfAccent)
                     }
                 }
             }
             .onAppear(perform: prefillFromCurrentGoal)
         }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.rfCaption)
+            .foregroundStyle(Color.rfTextSecondary)
     }
 
     private func prefillFromCurrentGoal() {

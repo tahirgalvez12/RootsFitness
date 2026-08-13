@@ -13,66 +13,70 @@ struct SignUpView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 4) {
-                Text("RootsFitness")
-                    .font(.largeTitle.bold())
-                Text("Create an account")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 40)
+        ZStack {
+            RFBackground()
 
-            VStack(spacing: 12) {
-                TextField("Username", text: $username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .textContentType(.username)
-                    .padding()
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+            VStack(spacing: 28) {
+                Spacer(minLength: 24)
 
-                TextField("Email", text: $email)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.emailAddress)
-                    .textContentType(.emailAddress)
-                    .padding()
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-
-                SecureField("Password (min 6 characters)", text: $password)
-                    .textContentType(.newPassword)
-                    .padding()
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-            }
-
-            if let errorMessage = authViewModel.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button {
-                Task { await authViewModel.signUp(email: email, password: password, username: username) }
-            } label: {
-                if authViewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Sign Up")
-                        .frame(maxWidth: .infinity)
+                VStack(spacing: 6) {
+                    Text("RootsFitness")
+                        .font(.rfDisplay)
+                        .foregroundStyle(Color.rfTextPrimary)
+                    Text("Create an account")
+                        .font(.rfBody)
+                        .foregroundStyle(Color.rfTextSecondary)
                 }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canSubmit || authViewModel.isLoading)
 
-            Button("Already have an account? Log In") {
-                showLogIn = true
-            }
-            .font(.footnote)
+                VStack(spacing: 12) {
+                    RFTextField(
+                        title: "Username",
+                        text: $username,
+                        textContentType: .username,
+                        autocapitalization: false
+                    )
 
-            Spacer()
+                    RFTextField(
+                        title: "Email",
+                        text: $email,
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: false
+                    )
+
+                    RFTextField(
+                        title: "Password (min 6 characters)",
+                        text: $password,
+                        isSecure: true,
+                        textContentType: .newPassword
+                    )
+                }
+
+                if let errorMessage = authViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.rfCaption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                }
+
+                RFPrimaryButton(
+                    title: "Sign Up",
+                    isLoading: authViewModel.isLoading,
+                    isDisabled: !canSubmit
+                ) {
+                    Task { await authViewModel.signUp(email: email, password: password, username: username) }
+                }
+
+                Button("Already have an account? Log In") {
+                    showLogIn = true
+                }
+                .font(.rfSubheadline)
+                .foregroundStyle(Color.rfAccent)
+
+                Spacer()
+            }
+            .padding(.horizontal, RFMetrics.screenPadding)
         }
-        .padding()
     }
 }
 

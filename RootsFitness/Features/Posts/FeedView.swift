@@ -7,34 +7,50 @@ struct FeedView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
+            ZStack {
+                Color.rfSurfacePrimary.ignoresSafeArea()
+
                 if viewModel.feedItems.isEmpty && !viewModel.isLoading {
-                    ContentUnavailableView(
-                        "No Posts Yet",
-                        systemImage: "figure.run",
-                        description: Text("Friends' workouts, meals, and progress will show up here.")
-                    )
-                } else {
-                    List(viewModel.feedItems) { item in
-                        FeedItemRow(item: item, signedURLs: viewModel.signedURLs)
+                    RFEmptyState(
+                        icon: "figure.run",
+                        title: "No Posts Yet",
+                        message: "Friends' workouts, meals, and progress will show up here.",
+                        actionTitle: "Create a Post"
+                    ) {
+                        showNewPost = true
                     }
-                    .listStyle(.plain)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 14) {
+                            ForEach(viewModel.feedItems) { item in
+                                FeedItemCard(item: item, signedURLs: viewModel.signedURLs)
+                            }
+                        }
+                        .padding(.horizontal, RFMetrics.screenPadding)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
+                    }
+                    .refreshable {
+                        await viewModel.refresh()
+                    }
                 }
             }
             .navigationTitle("Feed")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showNewPost = true
+                        showHealthSync = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "heart.text.square.fill")
+                            .foregroundStyle(Color.rfAccent)
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showHealthSync = true
+                        showNewPost = true
                     } label: {
-                        Image(systemName: "heart.text.square")
+                        Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(Color.rfAccent)
                     }
                 }
             }
@@ -47,125 +63,159 @@ struct FeedView: View {
             .task {
                 await viewModel.refresh()
             }
-            .refreshable {
-                await viewModel.refresh()
-            }
         }
     }
 }
 
-private struct FeedItemRow: View {
+private struct FeedItemCard: View {
     let item: FeedItem
     let signedURLs: [UUID: URL]
 
+    private var badgeIcon: String {
+        switch item {
+        case .exercise: return "figure.run"
+        case .weight: return "scalemass.fill"
+        case .meal: return "fork.knife"
+        case .progressPic: return "camera.fill"
+        }
+    }
+
+    private var badgeTint: Color {
+        .rfPostType(item.post.type)
+    }
+
+    private var title: String {
+        switch item {
+        case .exercise(_, let exercise, _): return exercise.activityType.capitalized
+        case .weight: return "Weigh-in"
+        case .meal(_, let meal, _): return meal.mealName?.isEmpty == false ? meal.mealName! : "Meal"
+        case .progressPic: return "Progress Pic"
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            switch item {
-            case .exercise(let post, let exercise, let media):
-                header(post: post, icon: "figure.run", title: exercise.activityType.capitalized)
-                exerciseDetail(exercise)
-                caption(post.caption)
-                mediaRow(media)
-            case .weight(let post, let weight, let media):
-                header(post: post, icon: "scalemass", title: "Weigh-in")
-                Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
-                    .font(.subheadline)
-                caption(post.caption)
-                mediaRow(media)
-            case .meal(let post, let meal, let media):
-                header(post: post, icon: "fork.knife", title: meal.mealName ?? "Meal")
-                mealDetail(meal)
-                caption(post.caption)
-                mediaRow(media)
-            case .progressPic(let post, let media):
-                header(post: post, icon: "camera", title: "Progress Pic")
-                caption(post.caption)
-                mediaRow(media)
+        RFCard {
+            VStack(alignment: .leading, spacing: 12) {
+                header
+
+                switch item {
+                case .exercise(_, let exercise, _):
+                    exerciseStats(exercise)
+                case .weight(_, let weight, _):
+                    Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
+                        .font(.rfTitle)
+                        .foregroundStyle(Color.rfTextPrimary)
+                case .meal(_, let meal, _):
+                    mealStats(meal)
+                case .progressPic:
+                    EmptyView()
+                }
+
+                caption(item.post.caption)
+                mediaGrid(item.media)
             }
         }
-        .padding(.vertical, 6)
     }
 
-    private func header(post: Post, icon: String, title: String) -> some View {
-        HStack {
-            Label(title, systemImage: icon)
-                .font(.headline)
+    private var header: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(badgeTint.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: badgeIcon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(badgeTint)
+            }
+
+            Text(title)
+                .font(.rfHeadline)
+                .foregroundStyle(Color.rfTextPrimary)
+
             Spacer()
-            Text(post.createdAt, style: .relative)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+
+            Text(item.post.createdAt, style: .relative)
+                .font(.rfCaption)
+                .foregroundStyle(Color.rfTextSecondary)
         }
     }
 
-    private func exerciseDetail(_ exercise: PostExercise) -> some View {
-        HStack(spacing: 12) {
+    private func exerciseStats(_ exercise: PostExercise) -> some View {
+        HStack(spacing: 8) {
             if let duration = exercise.durationMinutes {
-                Label("\(duration) min", systemImage: "clock")
+                RFStatPill(icon: "clock.fill", text: "\(duration) min", tint: .rfPostType(.exercise))
             }
             if let calories = exercise.caloriesBurned {
-                Label("\(calories) cal", systemImage: "flame")
+                RFStatPill(icon: "flame.fill", text: "\(calories) cal", tint: .rfPostType(.exercise))
+            }
+            if exercise.source == .healthkit {
+                RFStatPill(icon: "heart.fill", text: "Health", tint: .rfPostType(.exercise))
             }
         }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
     }
 
-    private func mealDetail(_ meal: PostMeal) -> some View {
-        HStack(spacing: 12) {
+    private func mealStats(_ meal: PostMeal) -> some View {
+        HStack(spacing: 8) {
             if let calories = meal.calories {
-                Text("\(calories) cal")
+                RFStatPill(icon: "flame.fill", text: "\(calories) cal", tint: .rfPostType(.meal))
             }
             if let protein = meal.proteinGrams {
-                Text("P: \(Int(protein))g")
+                RFStatPill(icon: "p.circle.fill", text: "\(Int(protein))g", tint: .rfPostType(.meal))
             }
             if let carbs = meal.carbsGrams {
-                Text("C: \(Int(carbs))g")
+                RFStatPill(icon: "c.circle.fill", text: "\(Int(carbs))g", tint: .rfPostType(.meal))
             }
             if let fat = meal.fatGrams {
-                Text("F: \(Int(fat))g")
+                RFStatPill(icon: "f.circle.fill", text: "\(Int(fat))g", tint: .rfPostType(.meal))
             }
         }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
     private func caption(_ text: String?) -> some View {
         if let text, !text.isEmpty {
             Text(text)
-                .font(.body)
+                .font(.rfBody)
+                .foregroundStyle(Color.rfTextPrimary)
         }
     }
 
     @ViewBuilder
-    private func mediaRow(_ media: [PostMedia]) -> some View {
+    private func mediaGrid(_ media: [PostMedia]) -> some View {
         if !media.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(media) { item in
-                        if let url = signedURLs[item.id] {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image.resizable().scaledToFill()
-                                case .failure:
-                                    Color.gray.opacity(0.2)
-                                default:
-                                    ProgressView()
-                                }
-                            }
-                            .frame(width: 160, height: 160)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        } else {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(.gray.opacity(0.2))
-                                .frame(width: 160, height: 160)
-                                .overlay(ProgressView())
-                        }
+                        mediaThumbnail(for: item)
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func mediaThumbnail(for item: PostMedia) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        Group {
+            if let url = signedURLs[item.id] {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        Color.rfTextSecondary.opacity(0.15)
+                    default:
+                        ProgressView()
+                    }
+                }
+            } else {
+                Color.rfTextSecondary.opacity(0.15)
+                    .overlay(ProgressView())
+            }
+        }
+        .frame(width: 220, height: 220)
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(Color.rfTextSecondary.opacity(0.08), lineWidth: 1))
     }
 }
 
