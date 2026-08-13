@@ -86,14 +86,6 @@ struct GoalsView: View {
     }
 }
 
-private func goalIcon(for type: GoalType) -> String {
-    switch type {
-    case .loseWeight: return "flame.fill"
-    case .bulk: return "dumbbell.fill"
-    case .generalFitness: return "figure.run.circle.fill"
-    }
-}
-
 private struct CurrentGoalCard: View {
     let goal: Goal
     let onEdit: () -> Void
@@ -102,31 +94,20 @@ private struct CurrentGoalCard: View {
     var body: some View {
         RFCard {
             VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.rfAccent.opacity(0.15))
-                            .frame(width: 56, height: 56)
-                        Image(systemName: goalIcon(for: goal.type))
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(Color.rfAccent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(goal.type.displayName)
+                        .font(.rfTitle)
+                        .foregroundStyle(Color.rfTextPrimary)
+                    if let targetValue = goal.targetValue {
+                        Text("Target \(targetValue.formatted())")
+                            .font(.rfData)
+                            .foregroundStyle(Color.rfTextSecondary)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(goal.type.displayName)
-                            .font(.rfTitle)
-                            .foregroundStyle(Color.rfTextPrimary)
-                        if let targetValue = goal.targetValue {
-                            Text("Target: \(targetValue.formatted())")
-                                .font(.rfSubheadline)
-                                .foregroundStyle(Color.rfTextSecondary)
-                        }
-                        if let targetDate = goal.targetDate {
-                            Text("By \(targetDate.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.rfSubheadline)
-                                .foregroundStyle(Color.rfTextSecondary)
-                        }
+                    if let targetDate = goal.targetDate {
+                        Text("By \(targetDate.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.rfData)
+                            .foregroundStyle(Color.rfTextSecondary)
                     }
-                    Spacer()
                 }
 
                 HStack(spacing: 10) {
@@ -144,21 +125,13 @@ private struct HistoryGoalRow: View {
     var body: some View {
         RFCard(padding: 14) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.rfTextSecondary.opacity(0.12))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: goalIcon(for: goal.type))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.rfTextSecondary)
-                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(goal.type.displayName)
                         .font(.rfHeadline)
                         .foregroundStyle(Color.rfTextPrimary)
                     if let targetValue = goal.targetValue {
-                        Text("Target: \(targetValue.formatted())")
-                            .font(.rfCaption)
+                        Text("Target \(targetValue.formatted())")
+                            .font(.rfData)
                             .foregroundStyle(Color.rfTextSecondary)
                     }
                 }

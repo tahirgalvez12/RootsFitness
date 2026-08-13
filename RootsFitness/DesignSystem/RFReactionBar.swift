@@ -53,17 +53,17 @@ struct RFReactionBar: View {
                 Text(kind.emoji)
                 if count > 0 {
                     Text("\(count)")
-                        .font(.rfCaption)
-                        .foregroundStyle(isActive ? .white : Color.rfTextPrimary)
+                        .font(.rfData)
+                        .foregroundStyle(isActive ? Color.rfSurfaceElevated : Color.rfTextSecondary)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
-                Capsule().fill(isActive ? Color.rfAccent : Color.rfSurfacePrimary)
+                Capsule().fill(isActive ? Color.rfTextPrimary : Color.clear)
             )
             .overlay(
-                Capsule().strokeBorder(isActive ? .clear : Color.rfTextSecondary.opacity(0.15), lineWidth: 1.5)
+                Capsule().strokeBorder(isActive ? .clear : Color.rfHairline, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

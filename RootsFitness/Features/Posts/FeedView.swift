@@ -27,6 +27,7 @@ struct FeedView: View {
                                 FeedItemCard(
                                     item: item,
                                     signedURLs: viewModel.signedURLs,
+                                    posterUsername: viewModel.usernamesByUserID[item.post.userID],
                                     reactions: viewModel.reactionsByPost[item.post.id] ?? [],
                                     commentCount: viewModel.commentCountByPost[item.post.id] ?? 0,
                                     currentUserID: viewModel.currentUserID,
@@ -96,106 +97,106 @@ struct FeedView: View {
 struct PostSummaryView {
     let item: FeedItem
     let signedURLs: [UUID: URL]
+    /// Poster's username, for the avatar + name header. Optional so
+    /// call sites that don't have this yet (feed doesn't batch-fetch
+    /// authors' profiles) can fall back to a generic label — see the
+    /// header's fallback below.
+    var posterUsername: String? = nil
 
-    private var badgeIcon: String {
-        switch item {
-        case .exercise: return "figure.run"
-        case .weight: return "scalemass.fill"
-        case .meal: return "fork.knife"
-        case .progressPic: return "camera.fill"
-        }
-    }
-
-    private var badgeTint: Color {
-        .rfPostType(item.post.type)
-    }
-
-    private var title: String {
-        switch item {
-        case .exercise(_, let exercise, _): return exercise.activityType.capitalized
-        case .weight: return "Weigh-in"
-        case .meal(_, let meal, _): return meal.mealName?.isEmpty == false ? meal.mealName! : "Meal"
-        case .progressPic: return "Progress Pic"
+    @ViewBuilder
+    var textContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+            content
         }
     }
 
     @ViewBuilder
-    var textContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
-            statsSection
+    private var content: some View {
+        switch item {
+        case .exercise(_, let exercise, _):
+            dataLine(exerciseDataParts(exercise))
+            caption(item.post.caption)
+        case .weight(_, let weight, _):
+            checkin(value: "\(weight.weightValue.formatted())\(weight.unit.rawValue)", note: item.post.caption)
+        case .meal(_, let meal, _):
+            dataLine(mealDataParts(meal))
+            caption(item.post.caption)
+        case .progressPic:
             caption(item.post.caption)
         }
     }
 
-    @ViewBuilder
-    private var statsSection: some View {
-        switch item {
-        case .exercise(_, let exercise, _):
-            exerciseStats(exercise)
-        case .weight(_, let weight, _):
-            Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
-                .font(.rfTitle)
-                .foregroundStyle(Color.rfTextPrimary)
-        case .meal(_, let meal, _):
-            mealStats(meal)
-        case .progressPic:
-            EmptyView()
-        }
-    }
-
+    /// Avatar (rounded-square) + poster name in Bricolage — the loudest
+    /// content on the card, per the reference design's "people loud, data
+    /// quiet" principle. Post type is conveyed by the content below, not a
+    /// colored icon badge.
     private var header: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(badgeTint)
-                    .frame(width: 40, height: 40)
-                Image(systemName: badgeIcon)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-            }
+            RFAvatar(username: posterUsername ?? "?", size: 34)
 
-            Text(title)
+            Text(posterUsername ?? "Someone")
                 .font(.rfHeadline)
                 .foregroundStyle(Color.rfTextPrimary)
 
             Spacer()
 
             Text(item.post.createdAt, style: .relative)
-                .font(.rfCaption)
+                .font(.rfData)
                 .foregroundStyle(Color.rfTextSecondary)
         }
     }
 
-    private func exerciseStats(_ exercise: PostExercise) -> some View {
-        HStack(spacing: 8) {
-            if let duration = exercise.durationMinutes {
-                RFStatPill(icon: "clock.fill", text: "\(duration) min", tint: .rfPostType(.exercise))
-            }
-            if let calories = exercise.caloriesBurned {
-                RFStatPill(icon: "flame.fill", text: "\(calories) cal", tint: .rfPostType(.exercise))
-            }
-            if exercise.source == .healthkit {
-                RFStatPill(icon: "heart.fill", text: "Health", tint: .rfPostType(.exercise))
-            }
+    private func exerciseDataParts(_ exercise: PostExercise) -> [String] {
+        var parts: [String] = [exercise.activityType.capitalized]
+        if let duration = exercise.durationMinutes { parts.append("\(duration) min") }
+        if let calories = exercise.caloriesBurned { parts.append("\(calories) cal") }
+        if exercise.source == .healthkit { parts.append("from Apple Health") }
+        return parts
+    }
+
+    private func mealDataParts(_ meal: PostMeal) -> [String] {
+        var parts: [String] = []
+        if let name = meal.mealName, !name.isEmpty { parts.append(name) }
+        if let calories = meal.calories { parts.append("\(calories) kcal") }
+        if let protein = meal.proteinGrams { parts.append("\(Int(protein))p") }
+        if let carbs = meal.carbsGrams { parts.append("\(Int(carbs))c") }
+        if let fat = meal.fatGrams { parts.append("\(Int(fat))f") }
+        return parts
+    }
+
+    /// A single quiet mono line joined with " · " — replaces the previous
+    /// colored stat-pill badges. Matches the reference design's
+    /// `<span class="data">45 min · 6 exercises · from Apple Health</span>`.
+    @ViewBuilder
+    private func dataLine(_ parts: [String]) -> some View {
+        if !parts.isEmpty {
+            Text(parts.joined(separator: " · "))
+                .font(.rfData)
+                .foregroundStyle(Color.rfTextSecondary)
         }
     }
 
-    private func mealStats(_ meal: PostMeal) -> some View {
-        HStack(spacing: 8) {
-            if let calories = meal.calories {
-                RFStatPill(icon: "flame.fill", text: "\(calories) cal", tint: .rfPostType(.meal))
+    /// The "quiet checkin" treatment for weight posts — a bordered box with
+    /// a large mono number and a small note, not a bare bold number.
+    private func checkin(value: String, note: String?) -> some View {
+        HStack(spacing: 14) {
+            Text(value)
+                .font(.custom("DM Mono", size: 19))
+                .foregroundStyle(Color.rfTextPrimary)
+            if let note, !note.isEmpty {
+                Text(note)
+                    .font(.rfSubheadline)
+                    .foregroundStyle(Color.rfTextSecondary)
             }
-            if let protein = meal.proteinGrams {
-                RFStatPill(icon: "p.circle.fill", text: "\(Int(protein))g", tint: .rfPostType(.meal))
-            }
-            if let carbs = meal.carbsGrams {
-                RFStatPill(icon: "c.circle.fill", text: "\(Int(carbs))g", tint: .rfPostType(.meal))
-            }
-            if let fat = meal.fatGrams {
-                RFStatPill(icon: "f.circle.fill", text: "\(Int(fat))g", tint: .rfPostType(.meal))
-            }
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.rfHairline, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -293,6 +294,7 @@ struct PostSummaryView {
 private struct FeedItemCard: View {
     let item: FeedItem
     let signedURLs: [UUID: URL]
+    let posterUsername: String?
     let reactions: [PostReaction]
     let commentCount: Int
     let currentUserID: UUID
@@ -300,7 +302,7 @@ private struct FeedItemCard: View {
     let onOpenDetail: () -> Void
 
     private var summary: PostSummaryView {
-        PostSummaryView(item: item, signedURLs: signedURLs)
+        PostSummaryView(item: item, signedURLs: signedURLs, posterUsername: posterUsername)
     }
 
     /// Builds the card shell directly instead of using `RFCard` — the hero
@@ -318,7 +320,7 @@ private struct FeedItemCard: View {
             summary.heroMedia(item.media)
 
             Divider()
-                .overlay(Color.rfTextSecondary.opacity(0.1))
+                .overlay(Color.rfHairline)
                 .padding(.horizontal, RFMetrics.cardPadding)
                 .padding(.top, item.media.isEmpty ? 0 : 12)
 
@@ -333,10 +335,10 @@ private struct FeedItemCard: View {
 
                 Button(action: onOpenDetail) {
                     HStack(spacing: 4) {
-                        Image(systemName: "bubble.left.fill")
+                        Image(systemName: "bubble.left")
                         Text(commentCount > 0 ? "\(commentCount)" : "Comment")
                     }
-                    .font(.rfCaption)
+                    .font(.rfData)
                     .foregroundStyle(Color.rfTextSecondary)
                 }
                 .buttonStyle(.plain)
@@ -348,12 +350,16 @@ private struct FeedItemCard: View {
             RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous)
                 .fill(Color.rfSurfaceElevated)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous)
+                .strokeBorder(Color.rfHairline, lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous))
         .shadow(
             color: .black.opacity(RFMetrics.cardShadowOpacity),
             radius: RFMetrics.cardShadowRadius,
             x: 0,
-            y: 4
+            y: 2
         )
         .onTapGesture(perform: onOpenDetail)
     }

@@ -30,6 +30,10 @@ final class PostsViewModel {
     private(set) var signedURLs: [UUID: URL] = [:]
     private(set) var reactionsByPost: [UUID: [PostReaction]] = [:]
     private(set) var commentCountByPost: [UUID: Int] = [:]
+    /// Poster usernames keyed by user id, for the feed card's avatar+name
+    /// header — the redesign's "people loud" hierarchy needs to know whose
+    /// post it is, not just render a generic label.
+    private(set) var usernamesByUserID: [UUID: String] = [:]
 
     var errorMessage: String?
     var isLoading = false
@@ -85,9 +89,15 @@ final class PostsViewModel {
                 .from("post_comments").select("post_id").in("post_id", values: allPostIDs)
                 .execute().value
 
-            let (exercises, weights, meals, media, reactions, commentIDs) = try await (
-                exercisesTask, weightsTask, mealsTask, mediaTask, reactionsTask, commentIDsTask
+            let posterIDs = Array(Set(posts.map(\.userID)))
+            async let profilesTask: [Profile] = posterIDs.isEmpty ? [] : client
+                .from("profiles").select().in("id", values: posterIDs)
+                .execute().value
+
+            let (exercises, weights, meals, media, reactions, commentIDs, profiles) = try await (
+                exercisesTask, weightsTask, mealsTask, mediaTask, reactionsTask, commentIDsTask, profilesTask
             )
+            usernamesByUserID = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0.username) })
 
             let exerciseByPost = Dictionary(uniqueKeysWithValues: exercises.map { ($0.postID, $0) })
             let weightByPost = Dictionary(uniqueKeysWithValues: weights.map { ($0.postID, $0) })

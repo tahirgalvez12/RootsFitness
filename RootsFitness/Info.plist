@@ -28,6 +28,13 @@
 	<string>RootsFitness reads your workouts from Health so you can choose which ones to share as posts with your friends.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Used only in debug builds to seed test workout data during development. RootsFitness never writes to Health in release builds.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>BricolageGrotesque-Medium.ttf</string>
+		<string>BricolageGrotesque-Bold.ttf</string>
+		<string>DMMono-Regular.ttf</string>
+		<string>DMMono-Medium.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

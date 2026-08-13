@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Styled empty-state treatment — icon rendered in an accent-tinted circle
-/// rather than plain gray, matching the bolder athletic tone. Used for Feed,
-/// Goals, and HealthKit sync empty states.
+/// Empty-state treatment — icon in a hairline-bordered rounded square rather
+/// than a large filled color block, matching the reference design's overall
+/// restraint (nothing in it uses a solid color fill for an icon badge).
 struct RFEmptyState: View {
     let icon: String
     let title: String
@@ -13,12 +13,16 @@ struct RFEmptyState: View {
     var body: some View {
         VStack(spacing: 20) {
             ZStack {
-                Circle()
-                    .fill(Color.rfAccent)
-                    .frame(width: 88, height: 88)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.rfSurfaceElevated)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .strokeBorder(Color.rfHairline, lineWidth: 1)
+                    )
+                    .frame(width: 80, height: 80)
                 Image(systemName: icon)
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(Color.rfTextSecondary)
             }
 
             VStack(spacing: 6) {

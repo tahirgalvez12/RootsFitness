@@ -13,7 +13,7 @@ struct RFCommentRow: View {
                         .font(.rfSubheadline)
                         .foregroundStyle(Color.rfTextPrimary)
                     Text(comment.comment.createdAt, style: .relative)
-                        .font(.rfCaption)
+                        .font(.rfData)
                         .foregroundStyle(Color.rfTextSecondary)
                 }
                 Text(comment.comment.body)
