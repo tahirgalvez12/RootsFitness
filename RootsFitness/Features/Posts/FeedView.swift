@@ -3,6 +3,7 @@ import SwiftUI
 struct FeedView: View {
     @State var viewModel: PostsViewModel
     @State private var showNewPost = false
+    @State private var showHealthSync = false
 
     var body: some View {
         NavigationStack {
@@ -29,9 +30,19 @@ struct FeedView: View {
                         Image(systemName: "plus")
                     }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showHealthSync = true
+                    } label: {
+                        Image(systemName: "heart.text.square")
+                    }
+                }
             }
             .sheet(isPresented: $showNewPost) {
                 NewPostView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showHealthSync) {
+                HealthSyncView(viewModel: HealthSyncViewModel(postsViewModel: viewModel))
             }
             .task {
                 await viewModel.refresh()

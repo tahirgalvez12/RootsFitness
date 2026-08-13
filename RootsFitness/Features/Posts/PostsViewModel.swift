@@ -6,6 +6,8 @@ struct NewExerciseInput {
     var activityType: String
     var durationMinutes: Int?
     var caloriesBurned: Int?
+    var source: ExerciseSource = .manual
+    var healthKitUUID: String? = nil
 }
 
 struct NewWeightInput {
@@ -128,10 +130,36 @@ final class PostsViewModel {
                     activityType: input.activityType,
                     durationMinutes: input.durationMinutes,
                     caloriesBurned: input.caloriesBurned,
-                    source: .manual,
-                    healthKitUUID: nil
+                    source: input.source,
+                    healthKitUUID: input.healthKitUUID
                 )
             ).execute()
+        }
+    }
+
+    /// HealthKit workout UUIDs already imported as posts by the current user, for
+    /// HealthSyncViewModel to filter out before showing sync candidates.
+    func existingHealthKitUUIDs() async -> Set<String> {
+        do {
+            let ownExercisePosts: [PostIDRow] = try await client
+                .from("posts")
+                .select("id")
+                .eq("user_id", value: currentUserID)
+                .eq("type", value: PostType.exercise.rawValue)
+                .execute()
+                .value
+            let postIDs = ownExercisePosts.map(\.id)
+            guard !postIDs.isEmpty else { return [] }
+
+            let rows: [PostExercise] = try await client
+                .from("post_exercise")
+                .select()
+                .in("post_id", values: postIDs)
+                .execute()
+                .value
+            return Set(rows.compactMap(\.healthKitUUID))
+        } catch {
+            return []
         }
     }
 
@@ -215,6 +243,10 @@ private struct NewPostRow: Encodable {
         case type
         case caption
     }
+}
+
+private struct PostIDRow: Decodable {
+    let id: UUID
 }
 
 private struct NewPostMediaRow: Encodable {
