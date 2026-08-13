@@ -27,10 +27,10 @@ struct RFAvatar: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(color.opacity(0.18))
+                .fill(color)
             Text(initials)
                 .font(.system(size: size * 0.42, weight: .heavy, design: .rounded))
-                .foregroundStyle(color)
+                .foregroundStyle(.white)
         }
         .frame(width: size, height: size)
     }

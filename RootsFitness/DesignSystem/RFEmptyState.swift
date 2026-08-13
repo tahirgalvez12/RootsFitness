@@ -14,11 +14,11 @@ struct RFEmptyState: View {
         VStack(spacing: 20) {
             ZStack {
                 Circle()
-                    .fill(Color.rfAccent.opacity(0.12))
+                    .fill(Color.rfAccent)
                     .frame(width: 88, height: 88)
                 Image(systemName: icon)
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundStyle(Color.rfAccent)
+                    .foregroundStyle(.white)
             }
 
             VStack(spacing: 6) {

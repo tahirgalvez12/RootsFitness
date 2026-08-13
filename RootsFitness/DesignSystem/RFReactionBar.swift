@@ -52,15 +52,16 @@ struct RFReactionBar: View {
                 if count > 0 {
                     Text("\(count)")
                         .font(.rfCaption)
+                        .foregroundStyle(isActive ? .white : Color.rfTextPrimary)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
-                Capsule().fill(isActive ? Color.rfAccent.opacity(0.18) : Color.rfSurfacePrimary)
+                Capsule().fill(isActive ? Color.rfAccent : Color.rfSurfacePrimary)
             )
             .overlay(
-                Capsule().strokeBorder(isActive ? Color.rfAccent : Color.rfTextSecondary.opacity(0.15), lineWidth: 1.5)
+                Capsule().strokeBorder(isActive ? .clear : Color.rfTextSecondary.opacity(0.15), lineWidth: 1.5)
             )
         }
         .buttonStyle(.plain)

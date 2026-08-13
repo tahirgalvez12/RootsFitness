@@ -140,11 +140,11 @@ struct PostSummaryView: View {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
-                    .fill(badgeTint.opacity(0.15))
+                    .fill(badgeTint)
                     .frame(width: 40, height: 40)
                 Image(systemName: badgeIcon)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(badgeTint)
+                    .foregroundStyle(.white)
             }
 
             Text(title)
