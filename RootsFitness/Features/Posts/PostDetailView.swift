@@ -28,9 +28,7 @@ struct PostDetailView: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            RFCard {
-                                PostSummaryView(item: item, signedURLs: signedURLs)
-                            }
+                            postCard
 
                             sectionLabel("React")
                             RFReactionBar(
@@ -83,6 +81,33 @@ struct PostDetailView: View {
         Text(text.uppercased())
             .font(.rfCaption)
             .foregroundStyle(Color.rfTextSecondary)
+    }
+
+    /// Same manual card shell as the feed's `FeedItemCard` — media needs to
+    /// run edge-to-edge to the card's rounded corners, which `RFCard`'s
+    /// uniform padding can't express.
+    private var postCard: some View {
+        let summary = PostSummaryView(item: item, signedURLs: signedURLs)
+        return VStack(alignment: .leading, spacing: 0) {
+            summary.textContent
+                .padding(.horizontal, RFMetrics.cardPadding)
+                .padding(.top, RFMetrics.cardPadding)
+                .padding(.bottom, item.media.isEmpty ? RFMetrics.cardPadding : 12)
+
+            summary.heroMedia(item.media)
+                .padding(.bottom, item.media.isEmpty ? 0 : RFMetrics.cardPadding)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous)
+                .fill(Color.rfSurfaceElevated)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous))
+        .shadow(
+            color: .black.opacity(RFMetrics.cardShadowOpacity),
+            radius: RFMetrics.cardShadowRadius,
+            x: 0,
+            y: 4
+        )
     }
 
     private var commentInputBar: some View {

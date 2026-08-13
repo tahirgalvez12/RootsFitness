@@ -88,7 +88,12 @@ struct FeedView: View {
 
 /// Shared post-summary rendering (header/stats/caption/media) — used by both
 /// the feed card and the post detail screen so the layout isn't duplicated.
-struct PostSummaryView: View {
+/// Not itself a `View`: callers compose `textContent` (padded
+/// header/stats/caption) and `heroMedia(_:)` (full-bleed image, no padding)
+/// around their own card shell, since the image needs to reach the card's
+/// edges while everything else stays padded — a split `RFCard`'s uniform
+/// padding can't express.
+struct PostSummaryView {
     let item: FeedItem
     let signedURLs: [UUID: URL]
 
@@ -114,25 +119,28 @@ struct PostSummaryView: View {
         }
     }
 
-    var body: some View {
+    @ViewBuilder
+    var textContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
-
-            switch item {
-            case .exercise(_, let exercise, _):
-                exerciseStats(exercise)
-            case .weight(_, let weight, _):
-                Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
-                    .font(.rfTitle)
-                    .foregroundStyle(Color.rfTextPrimary)
-            case .meal(_, let meal, _):
-                mealStats(meal)
-            case .progressPic:
-                EmptyView()
-            }
-
+            statsSection
             caption(item.post.caption)
-            mediaGrid(item.media)
+        }
+    }
+
+    @ViewBuilder
+    private var statsSection: some View {
+        switch item {
+        case .exercise(_, let exercise, _):
+            exerciseStats(exercise)
+        case .weight(_, let weight, _):
+            Text("\(weight.weightValue.formatted()) \(weight.unit.rawValue)")
+                .font(.rfTitle)
+                .foregroundStyle(Color.rfTextPrimary)
+        case .meal(_, let meal, _):
+            mealStats(meal)
+        case .progressPic:
+            EmptyView()
         }
     }
 
@@ -199,42 +207,70 @@ struct PostSummaryView: View {
         }
     }
 
+    /// Instagram-style full-bleed hero: one square image, or a swipeable
+    /// paged carousel with dot indicators when a post has more than one.
+    /// No horizontal padding/corner radius here — the enclosing card clips
+    /// its own shape, so this can run edge-to-edge to the card's sides.
+    /// Deliberately avoids `GeometryReader`: nested inside a `LazyVStack` in
+    /// a `ScrollView`, a reader here was swallowing the scroll gesture.
+    /// `.aspectRatio(1, contentMode: .fill)` + `.clipped()` derives a square
+    /// purely from the width SwiftUI already gives this view, no geometry
+    /// plumbing required.
     @ViewBuilder
-    private func mediaGrid(_ media: [PostMedia]) -> some View {
+    func heroMedia(_ media: [PostMedia]) -> some View {
         if !media.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(media) { item in
-                        mediaThumbnail(for: item)
+            if media.count == 1 {
+                mediaImage(for: media[0])
+                    .aspectRatio(1, contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+            } else {
+                ZStack(alignment: .bottom) {
+                    TabView {
+                        ForEach(media) { item in
+                            mediaImage(for: item)
+                                .aspectRatio(1, contentMode: .fill)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                        }
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+
+                    HStack(spacing: 5) {
+                        ForEach(media.indices, id: \.self) { _ in
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(.black.opacity(0.35)))
+                    .padding(.bottom, 12)
                 }
             }
         }
     }
 
     @ViewBuilder
-    private func mediaThumbnail(for item: PostMedia) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-        Group {
-            if let url = signedURLs[item.id] {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure:
-                        Color.rfTextSecondary.opacity(0.15)
-                    default:
-                        ProgressView()
-                    }
+    private func mediaImage(for item: PostMedia) -> some View {
+        if let url = signedURLs[item.id] {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .failure:
+                    Color.rfTextSecondary.opacity(0.15)
+                default:
+                    ProgressView()
                 }
-            } else {
-                Color.rfTextSecondary.opacity(0.15)
-                    .overlay(ProgressView())
             }
+        } else {
+            Color.rfTextSecondary.opacity(0.15)
+                .overlay(ProgressView())
         }
-        .frame(width: 220, height: 220)
-        .clipShape(shape)
-        .overlay(shape.strokeBorder(Color.rfTextSecondary.opacity(0.08), lineWidth: 1))
     }
 }
 
@@ -247,35 +283,62 @@ private struct FeedItemCard: View {
     let onToggleReaction: (ReactionKind) -> Void
     let onOpenDetail: () -> Void
 
+    private var summary: PostSummaryView {
+        PostSummaryView(item: item, signedURLs: signedURLs)
+    }
+
+    /// Builds the card shell directly instead of using `RFCard` — the hero
+    /// image needs to run edge-to-edge to the card's rounded corners with
+    /// no padding (Instagram-style), while the header/stats/caption/actions
+    /// above and below stay padded. `RFCard`'s uniform padding can't express
+    /// that split, so this mirrors its background/corner/shadow by hand.
     var body: some View {
-        RFCard {
-            VStack(alignment: .leading, spacing: 12) {
-                PostSummaryView(item: item, signedURLs: signedURLs)
+        VStack(alignment: .leading, spacing: 0) {
+            summary.textContent
+                .padding(.horizontal, RFMetrics.cardPadding)
+                .padding(.top, RFMetrics.cardPadding)
+                .padding(.bottom, item.media.isEmpty ? RFMetrics.cardPadding : 12)
 
-                Divider()
-                    .overlay(Color.rfTextSecondary.opacity(0.1))
+            summary.heroMedia(item.media)
 
-                HStack {
-                    RFReactionBar(
-                        reactions: reactions,
-                        currentUserID: currentUserID,
-                        onToggle: onToggleReaction
-                    )
+            Divider()
+                .overlay(Color.rfTextSecondary.opacity(0.1))
+                .padding(.horizontal, RFMetrics.cardPadding)
+                .padding(.top, item.media.isEmpty ? 0 : 12)
 
-                    Spacer()
+            HStack {
+                RFReactionBar(
+                    reactions: reactions,
+                    currentUserID: currentUserID,
+                    onToggle: onToggleReaction
+                )
 
-                    Button(action: onOpenDetail) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "bubble.left.fill")
-                            Text(commentCount > 0 ? "\(commentCount)" : "Comment")
-                        }
-                        .font(.rfCaption)
-                        .foregroundStyle(Color.rfTextSecondary)
+                Spacer()
+
+                Button(action: onOpenDetail) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bubble.left.fill")
+                        Text(commentCount > 0 ? "\(commentCount)" : "Comment")
                     }
-                    .buttonStyle(.plain)
+                    .font(.rfCaption)
+                    .foregroundStyle(Color.rfTextSecondary)
                 }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, RFMetrics.cardPadding)
+            .padding(.vertical, RFMetrics.cardPadding)
         }
+        .background(
+            RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous)
+                .fill(Color.rfSurfaceElevated)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: RFMetrics.cardCornerRadius, style: .continuous))
+        .shadow(
+            color: .black.opacity(RFMetrics.cardShadowOpacity),
+            radius: RFMetrics.cardShadowRadius,
+            x: 0,
+            y: 4
+        )
         .onTapGesture(perform: onOpenDetail)
     }
 }
