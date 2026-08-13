@@ -1,63 +1,28 @@
 import SwiftUI
 
 struct MainTabView: View {
+    let currentUserID: UUID
+
     var body: some View {
         TabView {
             Tab("Feed", systemImage: "figure.run") {
-                FeedPlaceholderView()
+                FeedView(viewModel: PostsViewModel(currentUserID: currentUserID))
             }
             Tab("Goals", systemImage: "target") {
-                GoalsPlaceholderView()
+                GoalsView(viewModel: GoalsViewModel(currentUserID: currentUserID))
+            }
+            Tab("Friends", systemImage: "person.2") {
+                FriendsListView(viewModel: FriendsViewModel(currentUserID: currentUserID))
             }
             Tab("Profile", systemImage: "person.crop.circle") {
-                ProfilePlaceholderView()
+                ProfileView(currentUserID: currentUserID)
             }
         }
-    }
-}
-
-private struct FeedPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "No Posts Yet",
-                systemImage: "figure.run",
-                description: Text("Friends' workouts, meals, and progress will show up here.")
-            )
-            .navigationTitle("Feed")
-        }
-    }
-}
-
-private struct GoalsPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "No Goals Set",
-                systemImage: "target",
-                description: Text("Set a goal like losing weight, bulking, or general fitness.")
-            )
-            .navigationTitle("Goals")
-        }
-    }
-}
-
-private struct ProfilePlaceholderView: View {
-    @Environment(AuthViewModel.self) private var authViewModel
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Button("Sign Out", role: .destructive) {
-                    Task { await authViewModel.signOut() }
-                }
-            }
-            .navigationTitle("Profile")
-        }
+        .tint(Color.rfAccent)
     }
 }
 
 #Preview {
-    MainTabView()
+    MainTabView(currentUserID: UUID())
         .environment(AuthViewModel())
 }

@@ -12,59 +12,63 @@ struct LogInView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 4) {
-                Text("RootsFitness")
-                    .font(.largeTitle.bold())
-                Text("Welcome back")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 40)
+        ZStack {
+            RFBackground()
 
-            VStack(spacing: 12) {
-                TextField("Email", text: $email)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.emailAddress)
-                    .textContentType(.emailAddress)
-                    .padding()
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
+            VStack(spacing: 28) {
+                Spacer(minLength: 24)
 
-                SecureField("Password", text: $password)
-                    .textContentType(.password)
-                    .padding()
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-            }
-
-            if let errorMessage = authViewModel.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button {
-                Task { await authViewModel.signIn(email: email, password: password) }
-            } label: {
-                if authViewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Log In")
-                        .frame(maxWidth: .infinity)
+                VStack(spacing: 6) {
+                    Text("RootsFitness")
+                        .font(.rfDisplay)
+                        .foregroundStyle(Color.rfTextPrimary)
+                    Text("Welcome back")
+                        .font(.rfBody)
+                        .foregroundStyle(Color.rfTextSecondary)
                 }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canSubmit || authViewModel.isLoading)
 
-            Button("Don't have an account? Sign Up") {
-                showLogIn = false
-            }
-            .font(.footnote)
+                VStack(spacing: 12) {
+                    RFTextField(
+                        title: "Email",
+                        text: $email,
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress,
+                        autocapitalization: false
+                    )
 
-            Spacer()
+                    RFTextField(
+                        title: "Password",
+                        text: $password,
+                        isSecure: true,
+                        textContentType: .password
+                    )
+                }
+
+                if let errorMessage = authViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.rfCaption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                }
+
+                RFPrimaryButton(
+                    title: "Log In",
+                    isLoading: authViewModel.isLoading,
+                    isDisabled: !canSubmit
+                ) {
+                    Task { await authViewModel.signIn(email: email, password: password) }
+                }
+
+                Button("Don't have an account? Sign Up") {
+                    showLogIn = false
+                }
+                .font(.rfSubheadline)
+                .foregroundStyle(Color.rfAccent)
+
+                Spacer()
+            }
+            .padding(.horizontal, RFMetrics.screenPadding)
         }
-        .padding()
     }
 }
 

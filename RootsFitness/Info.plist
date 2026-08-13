@@ -24,6 +24,10 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>SupabaseAnonKey</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>RootsFitness reads your workouts from Health so you can choose which ones to share as posts with your friends.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Used only in debug builds to seed test workout data during development. RootsFitness never writes to Health in release builds.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

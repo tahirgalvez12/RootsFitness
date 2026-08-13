@@ -1,3 +1,4 @@
+import Auth
 import SwiftUI
 
 struct RootView: View {
@@ -13,8 +14,8 @@ struct RootView: View {
                 } else {
                     SignUpView(showLogIn: $showLogIn)
                 }
-            case .signedIn:
-                MainTabView()
+            case .signedIn(let user):
+                MainTabView(currentUserID: user.id)
             }
         }
         .environment(authViewModel)
