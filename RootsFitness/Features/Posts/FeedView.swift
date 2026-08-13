@@ -207,36 +207,44 @@ struct PostSummaryView {
         }
     }
 
-    /// Instagram-style full-bleed hero: one square image, or a swipeable
-    /// paged carousel with dot indicators when a post has more than one.
-    /// No horizontal padding/corner radius here — the enclosing card clips
-    /// its own shape, so this can run edge-to-edge to the card's sides.
+    /// Instagram-style full-bleed hero: one image, or a swipeable paged
+    /// carousel with dot indicators when a post has more than one. No
+    /// horizontal padding/corner radius here — the enclosing card clips its
+    /// own shape, so this can run edge-to-edge to the card's sides.
+    ///
+    /// Capped at `RFMetrics.heroMediaMaxHeight` rather than a true 1:1
+    /// square: a full-width square photo on a modern phone is tall enough
+    /// that the reaction/comment row below it sits off-screen with no cue
+    /// more content follows. A capped height keeps the image large and
+    /// full-bleed while leaving the actions row visible without scrolling
+    /// on most posts.
+    ///
     /// Deliberately avoids `GeometryReader`: nested inside a `LazyVStack` in
     /// a `ScrollView`, a reader here was swallowing the scroll gesture.
-    /// `.aspectRatio(1, contentMode: .fill)` + `.clipped()` derives a square
-    /// purely from the width SwiftUI already gives this view, no geometry
-    /// plumbing required.
+    /// `.frame(maxWidth: .infinity)` + a fixed height + `.clipped()` gets
+    /// the same full-bleed crop from the width SwiftUI already provides, no
+    /// geometry plumbing required.
     @ViewBuilder
     func heroMedia(_ media: [PostMedia]) -> some View {
         if !media.isEmpty {
             if media.count == 1 {
                 mediaImage(for: media[0])
-                    .aspectRatio(1, contentMode: .fill)
                     .frame(maxWidth: .infinity)
+                    .frame(height: RFMetrics.heroMediaMaxHeight)
                     .clipped()
             } else {
                 ZStack(alignment: .bottom) {
                     TabView {
                         ForEach(media) { item in
                             mediaImage(for: item)
-                                .aspectRatio(1, contentMode: .fill)
                                 .frame(maxWidth: .infinity)
+                                .frame(height: RFMetrics.heroMediaMaxHeight)
                                 .clipped()
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
-                    .aspectRatio(1, contentMode: .fit)
                     .frame(maxWidth: .infinity)
+                    .frame(height: RFMetrics.heroMediaMaxHeight)
 
                     HStack(spacing: 5) {
                         ForEach(media.indices, id: \.self) { _ in

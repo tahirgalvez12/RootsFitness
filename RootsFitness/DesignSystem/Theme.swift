@@ -44,4 +44,11 @@ enum RFMetrics {
     static let screenPadding: CGFloat = 20
     static let cardShadowRadius: CGFloat = 12
     static let cardShadowOpacity: Double = 0.08
+
+    /// Cap on a feed post's full-bleed hero image height. A true 1:1 square
+    /// at full device width leaves the reaction/comment row below the fold
+    /// with no visual cue more content follows — this keeps the photo large
+    /// and prominent while leaving the actions row visible without
+    /// scrolling on most posts.
+    static let heroMediaMaxHeight: CGFloat = 420
 }
