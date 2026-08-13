@@ -255,38 +255,38 @@ struct PostSummaryView {
         }
     }
 
-    /// Fixed-size crop, sized and clipped *inside* the `AsyncImage` closure
-    /// rather than applied to the whole `AsyncImage` from outside. Framing
-    /// the container after the fact left its layout still driven by the
-    /// loaded photo's natural (often much taller) size in practice — baking
-    /// the frame onto the loaded `Image` itself, before it's handed back to
-    /// `AsyncImage`, is what actually makes the box authoritative.
+    /// A hard-bounded box, outermost `ZStack` sized first and clipped last,
+    /// so the crop never depends on `AsyncImage`/`Image` correctly reporting
+    /// (or honoring) their own intrinsic size — verified to render
+    /// differently across iOS versions when the frame was applied to the
+    /// image/AsyncImage instead of an outer container. A `ZStack` with an
+    /// explicit `.frame` and `.clipped()` establishes a boundary no child
+    /// can push past, regardless of what that child asks for.
     @ViewBuilder
     private func mediaImage(for item: PostMedia) -> some View {
-        if let url = signedURLs[item.id] {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity, maxHeight: RFMetrics.heroMediaMaxHeight)
-                        .clipped()
-                case .failure:
-                    Color.rfTextSecondary.opacity(0.15)
-                        .frame(height: RFMetrics.heroMediaMaxHeight)
-                default:
-                    Color.rfTextSecondary.opacity(0.15)
-                        .frame(height: RFMetrics.heroMediaMaxHeight)
-                        .overlay(ProgressView())
+        ZStack {
+            if let url = signedURLs[item.id] {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Color.rfTextSecondary.opacity(0.15)
+                    default:
+                        Color.rfTextSecondary.opacity(0.15)
+                            .overlay(ProgressView())
+                    }
                 }
+            } else {
+                Color.rfTextSecondary.opacity(0.15)
+                    .overlay(ProgressView())
             }
-            .frame(height: RFMetrics.heroMediaMaxHeight)
-        } else {
-            Color.rfTextSecondary.opacity(0.15)
-                .frame(height: RFMetrics.heroMediaMaxHeight)
-                .overlay(ProgressView())
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: RFMetrics.heroMediaMaxHeight)
+        .clipped()
     }
 }
 
