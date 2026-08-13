@@ -31,11 +31,13 @@ struct RFReactionBar: View {
         if kindsToShow.isEmpty && !showAllKinds {
             EmptyView()
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(kindsToShow, id: \.self) { kind in
-                        pill(for: kind)
-                    }
+            // A plain HStack, not a horizontal ScrollView: at most 5 reaction
+            // kinds ever render, which always fits, and the ScrollView here
+            // was clipping/offsetting its content against the card's leading
+            // edge instead of respecting the parent HStack's padding.
+            HStack(spacing: 8) {
+                ForEach(kindsToShow, id: \.self) { kind in
+                    pill(for: kind)
                 }
             }
         }
