@@ -16,67 +16,105 @@ struct SignUpView: View {
         ZStack {
             RFBackground()
 
-            VStack(spacing: 28) {
-                Spacer(minLength: 24)
+            if authViewModel.awaitingEmailConfirmation {
+                confirmEmailNotice
+            } else {
+                signUpForm
+            }
+        }
+    }
 
-                VStack(spacing: 6) {
-                    Text("RootsFitness")
-                        .font(.rfDisplay)
-                        .foregroundStyle(Color.rfTextPrimary)
-                    Text("Create an account")
-                        .font(.rfBody)
-                        .foregroundStyle(Color.rfTextSecondary)
-                }
+    private var signUpForm: some View {
+        VStack(spacing: 28) {
+            Spacer(minLength: 24)
 
-                VStack(spacing: 12) {
-                    RFTextField(
-                        title: "Username",
-                        text: $username,
-                        textContentType: .username,
-                        autocapitalization: false
-                    )
+            VStack(spacing: 6) {
+                Text("RootsFitness")
+                    .font(.rfDisplay)
+                    .foregroundStyle(Color.rfTextPrimary)
+                Text("Create an account")
+                    .font(.rfBody)
+                    .foregroundStyle(Color.rfTextSecondary)
+            }
 
-                    RFTextField(
-                        title: "Email",
-                        text: $email,
-                        keyboardType: .emailAddress,
-                        textContentType: .emailAddress,
-                        autocapitalization: false
-                    )
+            VStack(spacing: 12) {
+                RFTextField(
+                    title: "Username",
+                    text: $username,
+                    textContentType: .username,
+                    autocapitalization: false
+                )
 
-                    RFTextField(
-                        title: "Password (min 6 characters)",
-                        text: $password,
-                        isSecure: true,
-                        textContentType: .newPassword
-                    )
-                }
+                RFTextField(
+                    title: "Email",
+                    text: $email,
+                    keyboardType: .emailAddress,
+                    textContentType: .emailAddress,
+                    autocapitalization: false
+                )
 
-                if let errorMessage = authViewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.rfCaption)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                }
+                RFTextField(
+                    title: "Password (min 6 characters)",
+                    text: $password,
+                    isSecure: true,
+                    textContentType: .newPassword
+                )
+            }
 
-                RFPrimaryButton(
-                    title: "Sign Up",
-                    isLoading: authViewModel.isLoading,
-                    isDisabled: !canSubmit
-                ) {
-                    Task { await authViewModel.signUp(email: email, password: password, username: username) }
-                }
+            if let errorMessage = authViewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.rfCaption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
 
-                Button("Already have an account? Log In") {
-                    showLogIn = true
-                }
-                .font(.rfSubheadline)
+            RFPrimaryButton(
+                title: "Sign Up",
+                isLoading: authViewModel.isLoading,
+                isDisabled: !canSubmit
+            ) {
+                Task { await authViewModel.signUp(email: email, password: password, username: username) }
+            }
+
+            Button("Already have an account? Log In") {
+                showLogIn = true
+            }
+            .font(.rfSubheadline)
+            .foregroundStyle(Color.rfAccent)
+
+            Spacer()
+        }
+        .padding(.horizontal, RFMetrics.screenPadding)
+    }
+
+    private var confirmEmailNotice: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "envelope.badge.fill")
+                .font(.system(size: 44, weight: .semibold))
                 .foregroundStyle(Color.rfAccent)
 
-                Spacer()
+            Text("Check your email")
+                .font(.rfLargeTitle)
+                .foregroundStyle(Color.rfTextPrimary)
+
+            Text("We sent a confirmation link to \(email). Tap it, then come back and log in.")
+                .font(.rfBody)
+                .foregroundStyle(Color.rfTextSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
+
+            Spacer()
+
+            RFPrimaryButton(title: "Back to Log In", isLoading: false, isDisabled: false) {
+                authViewModel.acknowledgeEmailConfirmationNotice()
+                showLogIn = true
             }
-            .padding(.horizontal, RFMetrics.screenPadding)
+
+            Spacer()
         }
+        .padding(.horizontal, RFMetrics.screenPadding)
     }
 }
 
