@@ -61,6 +61,8 @@ struct ProfileView: View {
     @State private var goalsViewModel: GoalsViewModel?
     @State private var recentPostDates: [Date] = []
     @State private var showSignOutConfirm = false
+    @State private var showDeleteAccountConfirm = false
+    @State private var isDeletingAccount = false
     @State private var settings = AppSettings.shared
 
     private var weeks: [[Bool]] {
@@ -99,6 +101,22 @@ struct ProfileView: View {
                     Task { await authViewModel.signOut() }
                 }
                 Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog(
+                "Delete your account?",
+                isPresented: $showDeleteAccountConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Account", role: .destructive) {
+                    Task {
+                        isDeletingAccount = true
+                        _ = await authViewModel.deleteAccount()
+                        isDeletingAccount = false
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This permanently deletes your posts, comments, reactions, friendships, and profile. This cannot be undone.")
             }
             .task {
                 profile = await ProfileViewModel.fetchProfile(userID: currentUserID)
@@ -202,17 +220,44 @@ struct ProfileView: View {
             sectionLabel("Account")
 
             RFCard {
-                Button {
-                    showSignOutConfirm = true
-                } label: {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Sign Out")
-                        Spacer()
+                VStack(alignment: .leading, spacing: 16) {
+                    Button {
+                        showSignOutConfirm = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Sign Out")
+                            Spacer()
+                        }
+                        .font(.rfBody)
                     }
-                    .font(.rfBody)
+                    .foregroundStyle(.red)
+
+                    Divider().overlay(Color.rfHairline)
+
+                    Button {
+                        showDeleteAccountConfirm = true
+                    } label: {
+                        HStack {
+                            if isDeletingAccount {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "trash")
+                            }
+                            Text("Delete Account")
+                            Spacer()
+                        }
+                        .font(.rfBody)
+                    }
+                    .foregroundStyle(.red)
+                    .disabled(isDeletingAccount)
+
+                    if let errorMessage = authViewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.rfCaption)
+                            .foregroundStyle(.red)
+                    }
                 }
-                .foregroundStyle(.red)
             }
         }
     }

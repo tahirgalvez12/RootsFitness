@@ -4,6 +4,7 @@ import SwiftUI
 struct RootView: View {
     @State private var authViewModel = AuthViewModel()
     @State private var showLogIn = true
+    @State private var showResetPassword = false
 
     var body: some View {
         Group {
@@ -21,6 +22,17 @@ struct RootView: View {
         .environment(authViewModel)
         .task {
             authViewModel.start()
+        }
+        .onOpenURL { url in
+            guard url.host == "reset-password" else { return }
+            Task {
+                await authViewModel.handleAuthDeepLink(url)
+                showResetPassword = true
+            }
+        }
+        .fullScreenCover(isPresented: $showResetPassword) {
+            ResetPasswordView()
+                .environment(authViewModel)
         }
     }
 }

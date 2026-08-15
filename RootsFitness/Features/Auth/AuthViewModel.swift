@@ -97,6 +97,72 @@ final class AuthViewModel {
         }
     }
 
+    /// Permanently deletes the current user's account: their post-media
+    /// storage objects and the auth user itself, which cascades through
+    /// every other table (profiles, posts and all post-type child rows,
+    /// comments, reactions, friendships). Runs server-side via the
+    /// `delete-account` Edge Function since this requires the service role
+    /// key, which the app never holds. Returns `true` on success, after
+    /// which the local session is also cleared.
+    func deleteAccount() async -> Bool {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try await client.functions.invoke("delete-account")
+            try await client.auth.signOut()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Sends a password-reset email whose link reopens the app (via the
+    /// `rootsfitness://reset-password` URL scheme registered in Info.plist)
+    /// instead of a bare web page. `RootsFitnessApp`'s `onOpenURL` exchanges
+    /// that link for a session and routes to `ResetPasswordView`.
+    func sendPasswordReset(email: String) async -> Bool {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            try await client.auth.resetPasswordForEmail(
+                email,
+                redirectTo: URL(string: "rootsfitness://reset-password")
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Sets a new password for the session established by the password-
+    /// reset deep link (see `RootsFitnessApp.onOpenURL`).
+    func updatePassword(_ newPassword: String) async -> Bool {
+        errorMessage = nil
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            _ = try await client.auth.update(user: UserAttributes(password: newPassword))
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Exchanges a password-reset (or other auth) deep link URL for a
+    /// session — called from `RootsFitnessApp.onOpenURL`.
+    func handleAuthDeepLink(_ url: URL) async {
+        do {
+            _ = try await client.auth.session(from: url)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func ensureProfileExists(for user: User) async {
         do {
             let existing: [Profile] = try await client
