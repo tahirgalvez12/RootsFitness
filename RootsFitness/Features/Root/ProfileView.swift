@@ -61,6 +61,7 @@ struct ProfileView: View {
     @State private var goalsViewModel: GoalsViewModel?
     @State private var recentPostDates: [Date] = []
     @State private var showSignOutConfirm = false
+    @State private var settings = AppSettings.shared
 
     private var weeks: [[Bool]] {
         weekGrid(from: recentPostDates, weeks: 5)
@@ -77,24 +78,18 @@ struct ProfileView: View {
 
                         showingUpSection
 
-                        RFCard {
-                            Button {
-                                showSignOutConfirm = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                                    Text("Sign Out")
-                                    Spacer()
-                                }
-                                .font(.rfBody)
-                            }
-                            .foregroundStyle(.red)
-                        }
+                        goalSection
+
+                        preferencesSection
+
+                        notificationsSection
+
+                        accountSection
                     }
                     .padding(RFMetrics.screenPadding)
                 }
             }
-            .navigationTitle("You")
+            .navigationTitle("Settings")
             .confirmationDialog(
                 "Sign out?",
                 isPresented: $showSignOutConfirm,
@@ -111,6 +106,113 @@ struct ProfileView: View {
                 let viewModel = GoalsViewModel(currentUserID: currentUserID)
                 await viewModel.refresh()
                 goalsViewModel = viewModel
+            }
+        }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.rfLabel)
+            .foregroundStyle(Color.rfTextSecondary)
+    }
+
+    private var goalSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Goal")
+
+            NavigationLink {
+                GoalsView(viewModel: goalsViewModel ?? GoalsViewModel(currentUserID: currentUserID))
+            } label: {
+                RFCard {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let goal = goalsViewModel?.currentGoal {
+                                Text(goal.type.displayName)
+                                    .font(.rfHeadline)
+                                    .foregroundStyle(Color.rfTextPrimary)
+                                if let targetValue = goal.targetValue {
+                                    Text("Target \(targetValue.formatted())")
+                                        .font(.rfData)
+                                        .foregroundStyle(Color.rfTextSecondary)
+                                }
+                            } else {
+                                Text("No goal set")
+                                    .font(.rfHeadline)
+                                    .foregroundStyle(Color.rfTextPrimary)
+                                Text("Tap to set one")
+                                    .font(.rfData)
+                                    .foregroundStyle(Color.rfTextSecondary)
+                            }
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.rfTextSecondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var preferencesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Preferences")
+
+            RFCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Weight unit")
+                        .font(.rfBody)
+                        .foregroundStyle(Color.rfTextPrimary)
+                    RFPillPicker(
+                        options: [(WeightUnit.lb, "lb"), (WeightUnit.kg, "kg")],
+                        selection: Bindable(settings).preferredWeightUnit
+                    )
+                }
+            }
+        }
+    }
+
+    private var notificationsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Notifications")
+
+            RFCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    Toggle(isOn: Bindable(settings).notifyFriendRequests) {
+                        Text("Friend requests")
+                            .font(.rfBody)
+                            .foregroundStyle(Color.rfTextPrimary)
+                    }
+                    .tint(Color.rfAccent)
+
+                    Toggle(isOn: Bindable(settings).notifyReactionsAndComments) {
+                        Text("Reactions & comments")
+                            .font(.rfBody)
+                            .foregroundStyle(Color.rfTextPrimary)
+                    }
+                    .tint(Color.rfAccent)
+                }
+            }
+        }
+    }
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionLabel("Account")
+
+            RFCard {
+                Button {
+                    showSignOutConfirm = true
+                } label: {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("Sign Out")
+                        Spacer()
+                    }
+                    .font(.rfBody)
+                }
+                .foregroundStyle(.red)
             }
         }
     }

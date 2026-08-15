@@ -118,7 +118,8 @@ struct PostSummaryView {
             dataLine(exerciseDataParts(exercise))
             caption(item.post.caption)
         case .weight(_, let weight, _):
-            checkin(value: "\(weight.weightValue.formatted())\(weight.unit.rawValue)", note: item.post.caption)
+            let display = AppSettings.shared.displayWeight(weight.weightValue, storedUnit: weight.unit)
+            checkin(value: "\(display.value.formatted(.number.precision(.fractionLength(0...1))))\(display.unit.rawValue)", note: item.post.caption)
         case .meal(_, let meal, _):
             dataLine(mealDataParts(meal))
             caption(item.post.caption)

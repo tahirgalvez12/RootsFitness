@@ -15,7 +15,7 @@ struct NewPostView: View {
 
     // Weight
     @State private var weightValue = ""
-    @State private var weightUnit: WeightUnit = .lb
+    @State private var weightUnit: WeightUnit = AppSettings.shared.preferredWeightUnit
 
     // Meal
     @State private var mealName = ""
