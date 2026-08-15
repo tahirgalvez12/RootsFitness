@@ -8,13 +8,10 @@ struct MainTabView: View {
             Tab("Feed", systemImage: "figure.run") {
                 FeedView(viewModel: PostsViewModel(currentUserID: currentUserID))
             }
-            Tab("Goals", systemImage: "target") {
-                GoalsView(viewModel: GoalsViewModel(currentUserID: currentUserID))
-            }
             Tab("Friends", systemImage: "person.2") {
                 FriendsListView(viewModel: FriendsViewModel(currentUserID: currentUserID))
             }
-            Tab("Profile", systemImage: "person.crop.circle") {
+            Tab("Settings", systemImage: "gearshape") {
                 ProfileView(currentUserID: currentUserID)
             }
         }

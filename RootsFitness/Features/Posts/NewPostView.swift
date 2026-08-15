@@ -15,7 +15,7 @@ struct NewPostView: View {
 
     // Weight
     @State private var weightValue = ""
-    @State private var weightUnit: WeightUnit = .lb
+    @State private var weightUnit: WeightUnit = AppSettings.shared.preferredWeightUnit
 
     // Meal
     @State private var mealName = ""
@@ -58,17 +58,19 @@ struct NewPostView: View {
                             selection: $postType
                         )
 
-                        RFCard {
-                            VStack(alignment: .leading, spacing: 14) {
-                                switch postType {
-                                case .exercise:
-                                    exerciseFields
-                                case .weight:
-                                    weightFields
-                                case .meal:
-                                    mealFields
-                                case .progressPic:
-                                    EmptyView()
+                        if postType != .progressPic {
+                            RFCard {
+                                VStack(alignment: .leading, spacing: 14) {
+                                    switch postType {
+                                    case .exercise:
+                                        exerciseFields
+                                    case .weight:
+                                        weightFields
+                                    case .meal:
+                                        mealFields
+                                    case .progressPic:
+                                        EmptyView()
+                                    }
                                 }
                             }
                         }

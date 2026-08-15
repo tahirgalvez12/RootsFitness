@@ -1,20 +1,25 @@
 import SwiftUI
 
-/// Semantic color tokens for the RootsFitness design system. Every value is
-/// backed by a named color in Assets.xcassets with Any/Dark appearance
-/// variants, so light/dark mode adapt automatically — never hardcode hex
-/// values in view code, reference these tokens instead.
+/// Semantic color tokens for the RootsFitness design system — "kitchen
+/// table, not gym": sage paper, deep forest ink, dried rose, wheat. Every
+/// value is backed by a named color in Assets.xcassets with Any/Dark
+/// appearance variants, so light/dark mode adapt automatically — never
+/// hardcode hex values in view code, reference these tokens instead.
 extension Color {
-    /// Primary brand color — vibrant blue-violet. Also drives system tint
-    /// (nav bars, default button/control colors) via AccentColor.colorset.
+    /// Primary brand color — dried rose. Reserved for small highlights (the
+    /// "now" marker in a week ribbon, active toggle states) rather than
+    /// large filled surfaces — buttons use ink, not accent, per the
+    /// reference design's restraint. Also drives system tint via
+    /// AccentColor.colorset.
     static let rfAccent = Color("AccentBrand")
 
-    /// Secondary accent — warm coral, used sparingly for highlights,
-    /// celebratory moments (goal hit), and the progress-pic post type.
+    /// Secondary accent — wheat. Used sparingly alongside rose for warmth
+    /// without competing with it.
     static let rfAccentSecondary = Color("AccentBrandSecondary")
 
-    /// Screen background — a very subtle off-white/off-black, distinct from
-    /// pure white/black so elevated cards have visible lift.
+    /// Screen background — sage paper (dark: warm forest-tinted near-black,
+    /// not neutral gray), distinct from the card surface so elevated
+    /// content has visible lift without needing a heavy shadow.
     static let rfSurfacePrimary = Color("SurfacePrimary")
 
     /// Card/elevated-content background.
@@ -23,27 +28,25 @@ extension Color {
     static let rfTextPrimary = Color("TextPrimary")
     static let rfTextSecondary = Color("TextSecondary")
 
-    /// Per-post-type tints, used for icon badges so activity types are
-    /// distinguishable at a glance in the feed.
-    static func rfPostType(_ type: PostType) -> Color {
-        switch type {
-        case .exercise: return Color("PostExercise")
-        case .weight: return Color("PostWeight")
-        case .meal: return Color("PostMeal")
-        case .progressPic: return Color("PostProgressPic")
-        }
-    }
+    /// Hairline border/divider color — the reference design uses 1px
+    /// low-opacity hairlines instead of shadows to separate content
+    /// (card borders, dividers, unfilled week-ribbon marks, outlined pills).
+    static let rfHairline = Color("Hairline")
 }
 
 /// Shared layout constants so spacing/radius stay consistent across every
-/// restyled screen instead of each view picking its own numbers.
+/// screen instead of each view picking its own numbers.
 enum RFMetrics {
-    static let cardCornerRadius: CGFloat = 20
+    static let cardCornerRadius: CGFloat = 14
     static let controlCornerRadius: CGFloat = 14
     static let cardPadding: CGFloat = 16
     static let screenPadding: CGFloat = 20
-    static let cardShadowRadius: CGFloat = 12
-    static let cardShadowOpacity: Double = 0.08
+
+    /// Much subtler than the previous "bold/energetic" pass — the reference
+    /// design relies on the paper/card tone difference plus a 1px hairline
+    /// border to separate content, not a heavy drop shadow.
+    static let cardShadowRadius: CGFloat = 6
+    static let cardShadowOpacity: Double = 0.04
 
     /// Cap on a feed post's full-bleed hero image height. A true 1:1 square
     /// at full device width leaves the reaction/comment row below the fold

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Small pill-shaped action button for inline row actions (Accept/Decline,
 /// Add) where a full-width RFPrimaryButton wouldn't fit — e.g. a friend
-/// request row.
+/// request row. Filled variant uses ink (not accent), matching the primary
+/// button treatment; destructive stays red for clarity.
 struct RFCompactButton: View {
     let title: String
     var isFilled: Bool = true
@@ -10,13 +11,13 @@ struct RFCompactButton: View {
     let action: () -> Void
 
     private var tint: Color {
-        role == .destructive ? .red : .rfAccent
+        role == .destructive ? .red : .rfTextPrimary
     }
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.rfCaption)
+                .font(.rfData)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
         }
@@ -24,8 +25,8 @@ struct RFCompactButton: View {
             Capsule().fill(isFilled ? tint : Color.clear)
         )
         .overlay(
-            Capsule().strokeBorder(tint, lineWidth: isFilled ? 0 : 1.5)
+            Capsule().strokeBorder(isFilled ? .clear : tint.opacity(role == .destructive ? 0.5 : 1), lineWidth: 1)
         )
-        .foregroundStyle(isFilled ? .white : tint)
+        .foregroundStyle(isFilled ? Color.rfSurfaceElevated : tint)
     }
 }

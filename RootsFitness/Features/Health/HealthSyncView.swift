@@ -83,6 +83,14 @@ private struct CandidateRow: View {
     let candidate: HealthWorkoutCandidate
     let viewModel: HealthSyncViewModel
 
+    private func dataLine(for candidate: HealthWorkoutCandidate) -> String {
+        var parts = ["\(candidate.durationMinutes) min"]
+        if let calories = candidate.caloriesBurned {
+            parts.append("\(calories) cal")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     var body: some View {
         RFCard {
             HStack(alignment: .top, spacing: 12) {
@@ -110,15 +118,12 @@ private struct CandidateRow: View {
                         .font(.rfHeadline)
                         .foregroundStyle(Color.rfTextPrimary)
 
-                    HStack(spacing: 8) {
-                        RFStatPill(icon: "clock.fill", text: "\(candidate.durationMinutes) min", tint: .rfPostType(.exercise))
-                        if let calories = candidate.caloriesBurned {
-                            RFStatPill(icon: "flame.fill", text: "\(calories) cal", tint: .rfPostType(.exercise))
-                        }
-                    }
+                    Text(dataLine(for: candidate))
+                        .font(.rfData)
+                        .foregroundStyle(Color.rfTextSecondary)
 
                     Text(candidate.startDate, style: .date)
-                        .font(.rfCaption)
+                        .font(.rfData)
                         .foregroundStyle(Color.rfTextSecondary)
 
                     TextField(
@@ -129,12 +134,10 @@ private struct CandidateRow: View {
                         )
                     )
                     .font(.rfBody)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.rfSurfacePrimary)
-                    )
+                    .padding(.bottom, 8)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(Color.rfHairline).frame(height: 1)
+                    }
                     .padding(.top, 4)
                 }
             }

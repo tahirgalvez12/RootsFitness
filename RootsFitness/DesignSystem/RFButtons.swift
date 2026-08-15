@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// Full-width, bold, rounded primary action button — the main call-to-action
-/// treatment used for Log In, Sign Up, Post, Save, Add Friend, etc.
+/// Full-width, ink-filled primary action button — the main call-to-action
+/// treatment used for Log In, Sign Up, Post, Save, Add Friend, etc. Filled
+/// with ink (text-primary color) rather than the accent color: rose is
+/// reserved for small highlights, not large filled surfaces, per the
+/// reference design's restraint principle.
 struct RFPrimaryButton: View {
     let title: String
     var isLoading: Bool = false
@@ -13,20 +16,20 @@ struct RFPrimaryButton: View {
             Group {
                 if isLoading {
                     ProgressView()
-                        .tint(.white)
+                        .tint(Color.rfSurfaceElevated)
                 } else {
                     Text(title)
                         .font(.rfButton)
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 15)
         }
         .background(
             RoundedRectangle(cornerRadius: RFMetrics.controlCornerRadius, style: .continuous)
-                .fill(isDisabled ? Color.rfAccent.opacity(0.4) : Color.rfAccent)
+                .fill(isDisabled ? Color.rfTextPrimary.opacity(0.35) : Color.rfTextPrimary)
         )
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.rfSurfaceElevated)
         .disabled(isDisabled || isLoading)
     }
 }
@@ -39,7 +42,7 @@ struct RFSecondaryButton: View {
     let action: () -> Void
 
     private var tint: Color {
-        role == .destructive ? .red : .rfAccent
+        role == .destructive ? .red : .rfTextPrimary
     }
 
     var body: some View {
@@ -47,11 +50,11 @@ struct RFSecondaryButton: View {
             Text(title)
                 .font(.rfButton)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 15)
         }
         .background(
             RoundedRectangle(cornerRadius: RFMetrics.controlCornerRadius, style: .continuous)
-                .strokeBorder(tint, lineWidth: 1.5)
+                .strokeBorder(role == .destructive ? tint.opacity(0.5) : Color.rfHairline, lineWidth: 1)
         )
         .foregroundStyle(tint)
     }

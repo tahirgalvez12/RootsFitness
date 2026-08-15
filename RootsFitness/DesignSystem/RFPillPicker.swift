@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Custom horizontal pill selector — replaces the stock `.segmented` picker
-/// style with a bolder, rounded-capsule treatment matching the athletic tone.
+/// style. Selected pill fills with ink (matching the reference design's
+/// `.seg span.on` treatment), unselected pills are hairline-bordered.
 struct RFPillPicker<T: Hashable>: View {
     let options: [(value: T, label: String)]
     @Binding var selection: T
@@ -17,16 +18,16 @@ struct RFPillPicker<T: Hashable>: View {
                         }
                     } label: {
                         Text(option.label)
-                            .font(.rfSubheadline)
+                            .font(.rfData)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(
-                                Capsule().fill(isSelected ? Color.rfAccent : Color.rfSurfaceElevated)
+                                Capsule().fill(isSelected ? Color.rfTextPrimary : Color.clear)
                             )
-                            .foregroundStyle(isSelected ? .white : Color.rfTextPrimary)
+                            .foregroundStyle(isSelected ? Color.rfSurfaceElevated : Color.rfTextSecondary)
                             .overlay(
                                 Capsule().strokeBorder(
-                                    isSelected ? .clear : Color.rfTextSecondary.opacity(0.15),
+                                    isSelected ? .clear : Color.rfHairline,
                                     lineWidth: 1
                                 )
                             )
